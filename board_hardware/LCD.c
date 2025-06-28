@@ -2,18 +2,20 @@
 #include "LCD_Font.h"
 #include "Delay.h"
 #include <stdlib.h> // for rand()
+#include "hw_spi.h"
 
 static uint16_t LCD_TextColor = 0x0000; // 默认黑色
 static uint16_t LCD_BackColor = 0xFFFF; // 默认白色
 
+/*********************软件SPI接口*******************************/
 void LCD_PIN_Init(void)
 {
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
     GPIO_InitTypeDef GPIO_InitStructure = {
         .GPIO_Pin   = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_5 | GPIO_Pin_10 | GPIO_Pin_11,
         .GPIO_Mode  = GPIO_Mode_Out_PP,
         .GPIO_Speed = GPIO_Speed_50MHz,
     };
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
     GPIO_Init(GPIOB, &GPIO_InitStructure);
 
     LCD_RES_SET();//低电平复位
@@ -77,13 +79,13 @@ void LCD_WriteData16(uint16_t data)
     LCD_CS1_SET();
 }
 
-void LCD_WriteData24(uint16_t data)
+void LCD_WriteData24(uint32_t data)
 {
     LCD_CS1_CLR();
     LCD_DC_SET(); // 发送数据
     for (int i = 0; i < 24; i++)
     {
-        if (data & 0x8000)
+        if (data & 0x800000)
             LCD_MOSI_SET();
         else
             LCD_MOSI_CLR();
@@ -94,135 +96,189 @@ void LCD_WriteData24(uint16_t data)
     }
     LCD_CS1_SET();
 }
+/*********************硬件SPI接口*******************************/
+void LCD_PIN_Init_HW_SPI(void)
+{
+// 初始化硬件SPI,CS和RES
+    hw_spi_init();
+//cs,res,dc引脚初始化
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+    GPIO_InitTypeDef GPIO_InitStructure = {
+        .GPIO_Pin   = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_5,//分别是res,dc,cs
+        .GPIO_Mode  = GPIO_Mode_Out_PP,
+        .GPIO_Speed = GPIO_Speed_50MHz,
+    };
+    GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+    LCD_RES_SET();//低电平复位
+    LCD_DC_SET();//高电平像素数据
+    LCD_CS1_SET();
+}
+
+void LCD_WriteCommand_HW_SPI(uint8_t cmd)
+{
+    LCD_DC_CLR(); // 发送命令
+    LCD_CS1_CLR();
+    hw_spi_transfer(cmd); // 使用硬件SPI发送命令
+    LCD_CS1_SET();
+}
+
+void LCD_WriteData_HW_SPI(uint8_t data)
+{
+    LCD_DC_SET(); // 发送数据
+    LCD_CS1_CLR();
+    hw_spi_transfer(data); // 使用硬件SPI发送数据
+    LCD_CS1_SET();
+}
+
+void LCD_WriteData16_HW_SPI(uint16_t data)
+{
+    LCD_DC_SET(); // 发送数据
+    LCD_CS1_CLR();
+    hw_spi_transfer(data >> 8); // 发送高字节
+    hw_spi_transfer(data & 0xFF); // 发送低字节
+    LCD_CS1_SET();
+}
+
+/************************************************************************************/
 
 void LCD_SetAddress(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 {
-    LCD_WriteCommand(0x2A); // 列地址设置
-    LCD_WriteData(x1 >> 8);
-    LCD_WriteData(x1);
-    LCD_WriteData(x2 >> 8);
-    LCD_WriteData(x2);
-    LCD_WriteCommand(0x2B); // 行地址设置
-    LCD_WriteData(y1 >> 8);
-    LCD_WriteData(y1);
-    LCD_WriteData(y2 >> 8);
-    LCD_WriteData(y2);
-    LCD_WriteCommand(0x2C); // 开始写入GRAM
+    // LCD_WriteCommand(0x2A); // 列地址设置
+    // LCD_WriteData(x1 >> 8);
+    // LCD_WriteData(x1);
+    // LCD_WriteData(x2 >> 8);
+    // LCD_WriteData(x2);
+    // LCD_WriteCommand(0x2B); // 行地址设置
+    // LCD_WriteData(y1 >> 8);
+    // LCD_WriteData(y1);
+    // LCD_WriteData(y2 >> 8);
+    // LCD_WriteData(y2);
+    // LCD_WriteCommand(0x2C); // 开始写入GRAM
+
+    LCD_WriteCommand_HW_SPI(0x2A); // 列地址设置
+    LCD_WriteData16_HW_SPI(x1);
+    LCD_WriteData16_HW_SPI(x2);
+    LCD_WriteCommand_HW_SPI(0x2B); // 行地址设置
+    LCD_WriteData16_HW_SPI(y1);
+    LCD_WriteData16_HW_SPI(y2);
+    LCD_WriteCommand_HW_SPI(0x2C); // 开始写入GRAM
+
 }
 
 void LCD_IC_Init(void)
 {
     //************* Start Initial Sequence **********
-    LCD_WriteCommand(0x3A);
-    LCD_WriteData(0x55);
+    LCD_WriteCommand_HW_SPI(0x3A);
+    LCD_WriteData_HW_SPI(0x55);
 
-    LCD_WriteCommand(0xF6);
-    LCD_WriteData(0x01);
-    LCD_WriteData(0x33);
+    LCD_WriteCommand_HW_SPI(0xF6);
+    LCD_WriteData_HW_SPI(0x01);
+    LCD_WriteData_HW_SPI(0x33);
 
-    LCD_WriteCommand(0xB5);
-    LCD_WriteData(0x04);
-    LCD_WriteData(0x04);
-    LCD_WriteData(0x0A);
-    LCD_WriteData(0x14);
+    LCD_WriteCommand_HW_SPI(0xB5);
+    LCD_WriteData_HW_SPI(0x04);
+    LCD_WriteData_HW_SPI(0x04);
+    LCD_WriteData_HW_SPI(0x0A);
+    LCD_WriteData_HW_SPI(0x14);
 
-    LCD_WriteCommand(0x35);
-    LCD_WriteData(0x00);
+    LCD_WriteCommand_HW_SPI(0x35);
+    LCD_WriteData_HW_SPI(0x00);
 
-    LCD_WriteCommand(0xCF);
-    LCD_WriteData(0x00);
-    LCD_WriteData(0xEA);
-    LCD_WriteData(0xF0);
+    LCD_WriteCommand_HW_SPI(0xCF);
+    LCD_WriteData_HW_SPI(0x00);
+    LCD_WriteData_HW_SPI(0xEA);
+    LCD_WriteData_HW_SPI(0xF0);
 
-    LCD_WriteCommand(0xED);
-    LCD_WriteData(0x64);
-    LCD_WriteData(0x03);
-    LCD_WriteData(0x12);
-    LCD_WriteData(0x81);
+    LCD_WriteCommand_HW_SPI(0xED);
+    LCD_WriteData_HW_SPI(0x64);
+    LCD_WriteData_HW_SPI(0x03);
+    LCD_WriteData_HW_SPI(0x12);
+    LCD_WriteData_HW_SPI(0x81);
 
-    LCD_WriteCommand(0xE8);
-    LCD_WriteData(0x85);
-    LCD_WriteData(0x00);
-    LCD_WriteData(0x78);
+    LCD_WriteCommand_HW_SPI(0xE8);
+    LCD_WriteData_HW_SPI(0x85);
+    LCD_WriteData_HW_SPI(0x00);
+    LCD_WriteData_HW_SPI(0x78);
 
-    LCD_WriteCommand(0xCB);
-    LCD_WriteData(0x39);
-    LCD_WriteData(0x2C);
-    LCD_WriteData(0x00);
-    LCD_WriteData(0x33);
-    LCD_WriteData(0x06);
+    LCD_WriteCommand_HW_SPI(0xCB);
+    LCD_WriteData_HW_SPI(0x39);
+    LCD_WriteData_HW_SPI(0x2C);
+    LCD_WriteData_HW_SPI(0x00);
+    LCD_WriteData_HW_SPI(0x33);
+    LCD_WriteData_HW_SPI(0x06);
 
-    LCD_WriteCommand(0xF7);
-    LCD_WriteData(0x20);
+    LCD_WriteCommand_HW_SPI(0xF7);
+    LCD_WriteData_HW_SPI(0x20);
 
-    LCD_WriteCommand(0xEA);
-    LCD_WriteData(0x00);
-    LCD_WriteData(0x00);
+    LCD_WriteCommand_HW_SPI(0xEA);
+    LCD_WriteData_HW_SPI(0x00);
+    LCD_WriteData_HW_SPI(0x00);
 
-    LCD_WriteCommand(0xC0);    //Power control
-    LCD_WriteData(0x21);   //VRH[5:0]
+    LCD_WriteCommand_HW_SPI(0xC0);    //Power control
+    LCD_WriteData_HW_SPI(0x21);   //VRH[5:0]
 
-    LCD_WriteCommand(0xC1);    //Power control
-    LCD_WriteData(0x10);   //BT[3:0]
+    LCD_WriteCommand_HW_SPI(0xC1);    //Power control
+    LCD_WriteData_HW_SPI(0x10);   //BT[3:0]
 
-    LCD_WriteCommand(0xC5);    //VCM control
-    LCD_WriteData(0x4F);
-    LCD_WriteData(0x38);
+    LCD_WriteCommand_HW_SPI(0xC5);    //VCM control
+    LCD_WriteData_HW_SPI(0x4F);
+    LCD_WriteData_HW_SPI(0x38);
 
-    LCD_WriteCommand(0xC7);
-    LCD_WriteData(0x98);
+    LCD_WriteCommand_HW_SPI(0xC7);
+    LCD_WriteData_HW_SPI(0x98);
 
-    LCD_WriteCommand(0x36);    // Memory Access Control
-    LCD_WriteData(0x08);
+    LCD_WriteCommand_HW_SPI(0x36);    // Memory Access Control
+    LCD_WriteData_HW_SPI(0x08);
 
-    LCD_WriteCommand(0xB1);
-    LCD_WriteData(0x00);
-    LCD_WriteData(0x13);
+    LCD_WriteCommand_HW_SPI(0xB1);
+    LCD_WriteData_HW_SPI(0x00);
+    LCD_WriteData_HW_SPI(0x13);
 
-    LCD_WriteCommand(0xB6);    // Display Function Control
-    LCD_WriteData(0x0A);
-    LCD_WriteData(0xA2);
+    LCD_WriteCommand_HW_SPI(0xB6);    // Display Function Control
+    LCD_WriteData_HW_SPI(0x0A);
+    LCD_WriteData_HW_SPI(0xA2);
 
-    LCD_WriteCommand(0xF2);    // 3Gamma Function Disable
-    LCD_WriteData(0x02);
+    LCD_WriteCommand_HW_SPI(0xF2);    // 3Gamma Function Disable
+    LCD_WriteData_HW_SPI(0x02);
 
-    LCD_WriteCommand(0xE0);    //Set Gamma
-    LCD_WriteData(0x0F);
-    LCD_WriteData(0x27);
-    LCD_WriteData(0x24);
-    LCD_WriteData(0x0C);
-    LCD_WriteData(0x10);
-    LCD_WriteData(0x08);
-    LCD_WriteData(0x55);
-    LCD_WriteData(0X87);
-    LCD_WriteData(0x45);
-    LCD_WriteData(0x08);
-    LCD_WriteData(0x14);
-    LCD_WriteData(0x07);
-    LCD_WriteData(0x13);
-    LCD_WriteData(0x08);
-    LCD_WriteData(0x00);
+    LCD_WriteCommand_HW_SPI(0xE0);    //Set Gamma
+    LCD_WriteData_HW_SPI(0x0F);
+    LCD_WriteData_HW_SPI(0x27);
+    LCD_WriteData_HW_SPI(0x24);
+    LCD_WriteData_HW_SPI(0x0C);
+    LCD_WriteData_HW_SPI(0x10);
+    LCD_WriteData_HW_SPI(0x08);
+    LCD_WriteData_HW_SPI(0x55);
+    LCD_WriteData_HW_SPI(0X87);
+    LCD_WriteData_HW_SPI(0x45);
+    LCD_WriteData_HW_SPI(0x08);
+    LCD_WriteData_HW_SPI(0x14);
+    LCD_WriteData_HW_SPI(0x07);
+    LCD_WriteData_HW_SPI(0x13);
+    LCD_WriteData_HW_SPI(0x08);
+    LCD_WriteData_HW_SPI(0x00);
 
-    LCD_WriteCommand(0xE1);    //Set Gamma
-    LCD_WriteData(0x00);
-    LCD_WriteData(0x0F);
-    LCD_WriteData(0x12);
-    LCD_WriteData(0x05);
-    LCD_WriteData(0x11);
-    LCD_WriteData(0x06);
-    LCD_WriteData(0x25);
-    LCD_WriteData(0x34);
-    LCD_WriteData(0x37);
-    LCD_WriteData(0x01);
-    LCD_WriteData(0x08);
-    LCD_WriteData(0x07);
-    LCD_WriteData(0x2B);
-    LCD_WriteData(0x34);
-    LCD_WriteData(0x0F);
+    LCD_WriteCommand_HW_SPI(0xE1);    //Set Gamma
+    LCD_WriteData_HW_SPI(0x00);
+    LCD_WriteData_HW_SPI(0x0F);
+    LCD_WriteData_HW_SPI(0x12);
+    LCD_WriteData_HW_SPI(0x05);
+    LCD_WriteData_HW_SPI(0x11);
+    LCD_WriteData_HW_SPI(0x06);
+    LCD_WriteData_HW_SPI(0x25);
+    LCD_WriteData_HW_SPI(0x34);
+    LCD_WriteData_HW_SPI(0x37);
+    LCD_WriteData_HW_SPI(0x01);
+    LCD_WriteData_HW_SPI(0x08);
+    LCD_WriteData_HW_SPI(0x07);
+    LCD_WriteData_HW_SPI(0x2B);
+    LCD_WriteData_HW_SPI(0x34);
+    LCD_WriteData_HW_SPI(0x0F);
 
-    LCD_WriteCommand(0x11);    //Exit Sleep
+    LCD_WriteCommand_HW_SPI(0x11);    //Exit Sleep
     Delay_ms(120);
-    LCD_WriteCommand(0x29);    //Display on
+    LCD_WriteCommand_HW_SPI(0x29);    //Display on
 }
 
 void LCD_Reset(void)
@@ -235,7 +291,11 @@ void LCD_Reset(void)
 
 void LCD_Init_All(void)
 {
-    LCD_PIN_Init();
+    // LCD_PIN_Init();
+    // LCD_Reset();
+    // LCD_IC_Init();
+
+    LCD_PIN_Init_HW_SPI();
     LCD_Reset();
     LCD_IC_Init();
 }
@@ -243,7 +303,7 @@ void LCD_Init_All(void)
 void LCD_DrawPoint(uint16_t x, uint16_t y, uint16_t color)
 {
     LCD_SetAddress(x, y, x, y);
-    LCD_WriteData16(color);
+    LCD_WriteData16_HW_SPI(color);
 }
 
 void LCD_DrawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color)
@@ -274,7 +334,7 @@ void LCD_FillRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t c
     for (uint16_t y = y1; y <= y2; y++) {
         LCD_SetAddress(x1, y, x2, y);
         for (uint16_t x = x1; x <= x2; x++) {
-            LCD_WriteData16(color);
+            LCD_WriteData16_HW_SPI(color);
         }
     }
 }
@@ -328,6 +388,9 @@ void LCD_ShowSnow(void)
 {
     for (uint16_t y = 0; y < LCD_HEIGHT; y++) {
         LCD_SetAddress(0, y, LCD_WIDTH - 1, y);
+
+        LCD_DC_SET(); // 发送数据
+        LCD_CS1_CLR();
         for (uint16_t x = 0; x < LCD_WIDTH; x++) {
             // 双色雪花（黑白）
             // uint16_t color = (rand() & 1) ? 0xFFFF : 0x0000;
@@ -335,8 +398,11 @@ void LCD_ShowSnow(void)
             // 彩色雪花（16位色随机）
             uint16_t color = (uint16_t)rand();
 
-            LCD_WriteData16(color);
+            // LCD_WriteData16_HW_SPI(color);
+            hw_spi_transfer(color >> 8); // 发送高字节
+            hw_spi_transfer(color & 0xFF); // 发送低字节
         }
+        LCD_CS1_SET();
     }
 }
 

@@ -50,13 +50,14 @@
 #define LCD_MOSI_CLR()  GPIO_ResetBits(GPIOB, GPIO_Pin_11)
 
 void LCD_PIN_Init(void);
+void LCD_PIN_Init_HW_SPI(void);
 void LCD_Reset(void);
 void LCD_IC_Init(void);
 void LCD_Init_All(void);
 void LCD_WriteCommand(uint8_t cmd);
 void LCD_WriteData(uint8_t data);
 void LCD_WriteData16(uint16_t data);
-void LCD_WriteData24(uint16_t data);
+void LCD_WriteData24(uint32_t data);
 void LCD_SetAddress(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2);
 
 void LCD_DrawPoint(uint16_t x, uint16_t y, uint16_t color);

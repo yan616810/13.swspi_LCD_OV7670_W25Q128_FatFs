@@ -1,5 +1,4 @@
 #include "hw_iic.h"
-#include "stm32f10x.h"
 #include "Delay.h"
 
 //hw_iic端口外设&引脚初始化
