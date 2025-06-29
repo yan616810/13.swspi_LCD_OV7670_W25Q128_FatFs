@@ -396,15 +396,22 @@ void LCD_Clear(uint16_t color) {
 
 void LCD_ShowSnow(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 {
-    LCD_SetAddress(0, 0, LCD_WIDTH - 1, LCD_HEIGHT - 1); // 设置整个屏幕为绘图区域
+    LCD_SetAddress(x1, y1, x2, y2); // 只设置一次窗口
+    uint32_t total = (x2 - x1 + 1) * (y2 - y1 + 1);//从左上角到右下角的像素总数
 
-    // 双色雪花（黑白）
-    // uint16_t color = (rand() & 1) ? 0xFFFF : 0x0000;
-    // 彩色雪花（16位色随机）
-    uint16_t color = (uint16_t)rand();
-    
-    // 绘制雪花区域
-    LCD_FillRect(x1, y1, x2, y2, color);
+    LCD_WriteData_Start();// 准备发送数据
+    for (uint32_t i = 0; i < total; i++) {
+        // 双色雪花（黑白）
+        // uint16_t color = (rand() & 1) ? 0xFFFF : 0x0000;
+        
+        // 彩色雪花（16位色随机）
+        uint16_t color = (uint16_t)rand();
+
+        hw_spi_transfer(color >> 8); // 发送高字节
+        hw_spi_transfer(color & 0xFF); // 发送低字节
+    }
+    LCD_Write_DC_End(); // 结束数据发送
+
 }
 
 

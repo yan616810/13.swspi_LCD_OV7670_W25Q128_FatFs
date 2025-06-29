@@ -115,6 +115,26 @@ lwgps_t lwgps_handle;
 /************************tamp var************************ */
 uint8_t earth_flag=1;//全球缩略图标志位
 
+void timer1_init(void)
+{
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1,ENABLE);
+	
+	TIM_InternalClockConfig(TIM1);
+	
+	{
+		TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStruct;
+		
+		TIM_TimeBaseStructInit(&TIM_TimeBaseInitStruct);
+		
+		TIM_TimeBaseInitStruct.TIM_ClockDivision=TIM_CKD_DIV1;
+		TIM_TimeBaseInitStruct.TIM_CounterMode=TIM_CounterMode_Up;
+		TIM_TimeBaseInitStruct.TIM_Period=65536-1;//0us - 65536*8us=524.288ms,两帧
+		TIM_TimeBaseInitStruct.TIM_Prescaler=576-1;//8us
+		TIM_TimeBaseInit(TIM1,&TIM_TimeBaseInitStruct);
+	}
+	
+	TIM_Cmd(TIM1,ENABLE);
+}
 
 void timer2_init(void)
 {
@@ -466,6 +486,62 @@ int main(void)
 	// u8g2_DrawStr(&u8g2,9*7,3*10,"Acce");
 
 	// u8g2_SendBuffer(&u8g2);
+//LCD
+	timer1_init();//测帧率时间
+
+	LCD_Init_All();
+	LCD_Clear(BLACK);
+	LCD_ShowSnow(0,0,LCD_WIDTH-1,LCD_HEIGHT-1);//显示雪花
+	LCD_FillRect(0,50,85,150,0xc88c);//填充白色背景
+	LCD_FillRect(50,100,120,200,0x57f6);//填充白色背景
+	LCD_DrawLine(0,0,200,200,0x0000);//画一条黑色斜线
+	while(1)
+	{
+		uint32_t ms=0;//清零帧率计数器
+
+		// LCD_Clear(BLACK);
+		// LCD_ShowSnow(0,0,LCD_WIDTH-1,LCD_HEIGHT-1);//显示雪花
+		TIM1->CNT=0;//清零计数器
+		LCD_FillRect(0,0,239,319,BLUE);
+		ms += (TIM1->CNT * 8)/1000;//计算帧率
+
+		TIM1->CNT=0;//清零计数器
+		LCD_FillRect(0,0,239,319,BRED);
+		ms += (TIM1->CNT * 8)/1000;//计算帧率
+
+		// LCD_FillRect(0,0,239,319,GRED);
+		// LCD_FillRect(0,0,239,319,RED);
+		// LCD_FillRect(0,0,239,319,MAGENTA);
+		
+		TIM1->CNT=0;//清零计数器
+		LCD_FillRect(0,0,239,319,GREEN);
+		ms += (TIM1->CNT * 8)/1000;//计算帧率
+
+		// LCD_FillRect(0,0,239,319,CYAN);
+		TIM1->CNT=0;//清零计数器
+		LCD_FillRect(0,0,239,319,YELLOW);
+		ms += (TIM1->CNT * 8)/1000;//计算帧率
+		// LCD_FillRect(0,0,239,319,BROWN);
+		// LCD_FillRect(0,0,239,319,BRRED);
+		// LCD_FillRect(0,0,239,319,GRAY);
+		// LCD_FillRect(0,0,239,319,GRAY25);
+
+		memset(u8g2_buf, 0, sizeof(u8g2_buf));
+		sprintf(u8g2_buf,"FPS:%dms/picture",ms>>2);//刷新4个图片取平均
+		u8g2_SetDrawColor(&u8g2,0);
+		u8g2_DrawBox(&u8g2,0,0,128,10);//清除上次的FPS显示
+		u8g2_SetDrawColor(&u8g2,1);
+		u8g2_DrawStr(&u8g2,0,0,u8g2_buf);//显示FPS
+
+		memset(u8g2_buf, 0, sizeof(u8g2_buf));
+		sprintf(u8g2_buf,"%4.1fFPS",1000.0/(ms>>2));//刷新4个图片取平均
+		u8g2_SetDrawColor(&u8g2,0);
+		u8g2_DrawBox(&u8g2,0,20,128,20);//清除上次的FPS显示
+		u8g2_SetDrawColor(&u8g2,1);
+		u8g2_DrawStrX2(&u8g2,0,20,u8g2_buf);//显示FPS
+
+		u8g2_SendBuffer(&u8g2);//发送缓冲区内容到屏幕
+	}
 /*片上RTC时钟初始化*/
 	// u8g2_DrawStr(&u8g2,0,0,"RTC initing...");
 	// RTC_Filling_DataStruct(&RTC_Init_And_Adjustment,8,2025,5,20,11,25,0,-1);
@@ -567,32 +643,6 @@ int main(void)
 	// printf("Number of bytes read: %d\r\n", (int)len);
 	// usart2_send_Hex(data,len);
 	// printf("\r\n");
-//LCD
-	LCD_Init_All();
-	LCD_Clear(BLACK);
-	LCD_ShowSnow(0,0,LCD_WIDTH-1,LCD_HEIGHT-1);//显示雪花
-	LCD_FillRect(0,50,85,150,0xc88c);//填充白色背景
-	LCD_FillRect(50,100,120,200,0x57f6);//填充白色背景
-	LCD_DrawLine(0,0,200,200,0x0000);//画一条黑色斜线
-
-	while(1)
-	{
-		LCD_Clear(BLACK);
-		LCD_ShowSnow(0,0,LCD_WIDTH-1,LCD_HEIGHT-1);//显示雪花
-		LCD_FillRect(0,0,239,319,BLUE);
-		LCD_FillRect(0,0,239,319,BRED);
-		LCD_FillRect(0,0,239,319,GRED);
-		LCD_FillRect(0,0,239,319,RED);
-		LCD_FillRect(0,0,239,319,MAGENTA);
-		LCD_FillRect(0,0,239,319,GREEN);
-		LCD_FillRect(0,0,239,319,CYAN);
-		LCD_FillRect(0,0,239,319,YELLOW);
-		LCD_FillRect(0,0,239,319,BROWN);
-		LCD_FillRect(0,0,239,319,BRRED);
-		LCD_FillRect(0,0,239,319,GRAY);
-		LCD_FillRect(0,0,239,319,GRAY25);
-
-	}
 /*任务滴答*/
 	timer2_init();
 	printf("system init success!!!\r\n");
