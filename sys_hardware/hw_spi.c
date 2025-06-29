@@ -45,7 +45,7 @@ void hw_spi_init(void)
     SPI_Cmd(SPI1, ENABLE);
 }
 
-uint8_t hw_spi_transfer(uint8_t data)
+uint8_t hw_spi_transfer(uint8_t data)//去除对RXNE标志位的检查和返回值的话，LCD帧率从4.1FPS提升到7.6FPS
 {
     //等待SPI1发送缓冲区空
     while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);//数据从发送缓冲器传输到移位寄存器时TXE标志将被置位 
