@@ -113,7 +113,7 @@ lwgps_t lwgps_handle;
 // lwgps_float_t latitude, longitude, altitude;
 
 /************************tamp var************************ */
-uint8_t earth_flag=0;//全球缩略图标志位
+uint8_t earth_flag=1;//全球缩略图标志位
 
 
 void timer2_init(void)
@@ -570,12 +570,29 @@ int main(void)
 //LCD
 	LCD_Init_All();
 	LCD_Clear(BLACK);
-	LCD_ShowSnow();//显示雪花
-	LCD_SetAddress(0,50,85,150);//设置LCD显示区域
+	LCD_ShowSnow(0,0,LCD_WIDTH-1,LCD_HEIGHT-1);//显示雪花
 	LCD_FillRect(0,50,85,150,0xc88c);//填充白色背景
-	LCD_SetAddress(50,100,120,200);//设置LCD显示区域
 	LCD_FillRect(50,100,120,200,0x57f6);//填充白色背景
 	LCD_DrawLine(0,0,200,200,0x0000);//画一条黑色斜线
+
+	while(1)
+	{
+		LCD_Clear(BLACK);
+		LCD_ShowSnow(0,0,LCD_WIDTH-1,LCD_HEIGHT-1);//显示雪花
+		LCD_FillRect(0,0,239,319,BLUE);
+		LCD_FillRect(0,0,239,319,BRED);
+		LCD_FillRect(0,0,239,319,GRED);
+		LCD_FillRect(0,0,239,319,RED);
+		LCD_FillRect(0,0,239,319,MAGENTA);
+		LCD_FillRect(0,0,239,319,GREEN);
+		LCD_FillRect(0,0,239,319,CYAN);
+		LCD_FillRect(0,0,239,319,YELLOW);
+		LCD_FillRect(0,0,239,319,BROWN);
+		LCD_FillRect(0,0,239,319,BRRED);
+		LCD_FillRect(0,0,239,319,GRAY);
+		LCD_FillRect(0,0,239,319,GRAY25);
+
+	}
 /*任务滴答*/
 	timer2_init();
 	printf("system init success!!!\r\n");

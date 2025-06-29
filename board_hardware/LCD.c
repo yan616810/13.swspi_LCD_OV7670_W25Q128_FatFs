@@ -96,7 +96,7 @@ void LCD_WriteData24(uint32_t data)
     }
     LCD_CS1_SET();
 }
-/*********************硬件SPI接口*******************************/
+/*********************硬件SPI接口*****************************************************************/
 void LCD_PIN_Init_HW_SPI(void)
 {
 // 初始化硬件SPI,CS和RES
@@ -114,30 +114,47 @@ void LCD_PIN_Init_HW_SPI(void)
     LCD_DC_SET();//高电平像素数据
     LCD_CS1_SET();
 }
-
-void LCD_WriteCommand_HW_SPI(uint8_t cmd)
+void LCD_Reset(void)
+{
+    LCD_RES_CLR();
+    Delay_ms(120);
+    LCD_RES_SET();
+    Delay_ms(10);
+}
+/**********************************/
+inline void LCD_WriteCommand_Start(void)
 {
     LCD_DC_CLR(); // 发送命令
-    LCD_CS1_CLR();
-    hw_spi_transfer(cmd); // 使用硬件SPI发送命令
-    LCD_CS1_SET();
+    LCD_CS1_CLR(); // 选择LCD
 }
-
+inline void LCD_WriteData_Start(void)
+{
+    LCD_DC_SET(); // 发送数据
+    LCD_CS1_CLR(); // 选择LCD
+}
+inline void LCD_Write_DC_End(void)
+{
+    LCD_CS1_SET(); // 取消选择LCD
+}
+/**********************************/
+void LCD_WriteCommand_HW_SPI(uint8_t cmd)
+{
+    LCD_WriteCommand_Start(); // 准备发送命令
+    hw_spi_transfer(cmd); // 使用硬件SPI发送命令
+    LCD_Write_DC_End(); // 结束命令发送
+}
 void LCD_WriteData_HW_SPI(uint8_t data)
 {
-    LCD_DC_SET(); // 发送数据
-    LCD_CS1_CLR();
+    LCD_WriteData_Start(); // 准备发送数据
     hw_spi_transfer(data); // 使用硬件SPI发送数据
-    LCD_CS1_SET();
+    LCD_Write_DC_End(); // 结束数据发送
 }
-
 void LCD_WriteData16_HW_SPI(uint16_t data)
 {
-    LCD_DC_SET(); // 发送数据
-    LCD_CS1_CLR();
+    LCD_WriteData_Start(); // 准备发送数据
     hw_spi_transfer(data >> 8); // 发送高字节
     hw_spi_transfer(data & 0xFF); // 发送低字节
-    LCD_CS1_SET();
+    LCD_Write_DC_End(); // 结束数据发送
 }
 
 /************************************************************************************/
@@ -155,7 +172,6 @@ void LCD_SetAddress(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
     // LCD_WriteData(y2 >> 8);
     // LCD_WriteData(y2);
     // LCD_WriteCommand(0x2C); // 开始写入GRAM
-
     LCD_WriteCommand_HW_SPI(0x2A); // 列地址设置
     LCD_WriteData16_HW_SPI(x1);
     LCD_WriteData16_HW_SPI(x2);
@@ -163,7 +179,6 @@ void LCD_SetAddress(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
     LCD_WriteData16_HW_SPI(y1);
     LCD_WriteData16_HW_SPI(y2);
     LCD_WriteCommand_HW_SPI(0x2C); // 开始写入GRAM
-
 }
 
 void LCD_IC_Init(void)
@@ -281,14 +296,6 @@ void LCD_IC_Init(void)
     LCD_WriteCommand_HW_SPI(0x29);    //Display on
 }
 
-void LCD_Reset(void)
-{
-    LCD_RES_CLR();
-    Delay_ms(120);
-    LCD_RES_SET();
-    Delay_ms(10);
-}
-
 void LCD_Init_All(void)
 {
     // LCD_PIN_Init();
@@ -331,12 +338,15 @@ void LCD_DrawRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t c
 
 void LCD_FillRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color)
 {
-    for (uint16_t y = y1; y <= y2; y++) {
-        LCD_SetAddress(x1, y, x2, y);
-        for (uint16_t x = x1; x <= x2; x++) {
-            LCD_WriteData16_HW_SPI(color);
-        }
+    LCD_SetAddress(x1, y1, x2, y2); // 只设置一次窗口
+    uint32_t total = (x2 - x1 + 1) * (y2 - y1 + 1);//从左上角到右下角的像素总数
+
+    LCD_WriteData_Start();// 准备发送数据
+    for (uint32_t i = 0; i < total; i++) {
+        hw_spi_transfer(color >> 8); // 发送高字节
+        hw_spi_transfer(color & 0xFF); // 发送低字节
     }
+    LCD_Write_DC_End(); // 结束数据发送
 }
 
 void LCD_SetTextColor(uint16_t color) {
@@ -384,26 +394,17 @@ void LCD_Clear(uint16_t color) {
 //     }
 // }
 
-void LCD_ShowSnow(void)
+void LCD_ShowSnow(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 {
-    for (uint16_t y = 0; y < LCD_HEIGHT; y++) {
-        LCD_SetAddress(0, y, LCD_WIDTH - 1, y);
+    LCD_SetAddress(0, 0, LCD_WIDTH - 1, LCD_HEIGHT - 1); // 设置整个屏幕为绘图区域
 
-        LCD_DC_SET(); // 发送数据
-        LCD_CS1_CLR();
-        for (uint16_t x = 0; x < LCD_WIDTH; x++) {
-            // 双色雪花（黑白）
-            // uint16_t color = (rand() & 1) ? 0xFFFF : 0x0000;
-
-            // 彩色雪花（16位色随机）
-            uint16_t color = (uint16_t)rand();
-
-            // LCD_WriteData16_HW_SPI(color);
-            hw_spi_transfer(color >> 8); // 发送高字节
-            hw_spi_transfer(color & 0xFF); // 发送低字节
-        }
-        LCD_CS1_SET();
-    }
+    // 双色雪花（黑白）
+    // uint16_t color = (rand() & 1) ? 0xFFFF : 0x0000;
+    // 彩色雪花（16位色随机）
+    uint16_t color = (uint16_t)rand();
+    
+    // 绘制雪花区域
+    LCD_FillRect(x1, y1, x2, y2, color);
 }
 
 

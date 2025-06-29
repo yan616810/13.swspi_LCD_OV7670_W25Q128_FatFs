@@ -70,6 +70,6 @@ void LCD_DrawString(uint16_t x, uint16_t y, const char *str, uint16_t color, uin
 void LCD_SetTextColor(uint16_t color);
 void LCD_SetBackColor(uint16_t color);
 void LCD_Clear(uint16_t color);
-void LCD_ShowSnow(void);
+void LCD_ShowSnow(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2);
 #endif
 
