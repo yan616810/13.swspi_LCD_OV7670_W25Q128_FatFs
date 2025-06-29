@@ -48,20 +48,17 @@ void hw_spi_init(void)
 uint8_t hw_spi_transfer(uint8_t data)
 {
     //等待SPI1发送缓冲区空
-    while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);//数据从发送缓冲器传输到移位寄存器时TXE标志将被置位
-    
-/****TXE=1，表明发送缓冲区的数据已经转移到了移位寄存器，此时发送缓冲区为空，可以再写进一个数据到发送缓冲区并等待移位寄存器传输完成******/
-    
+    while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);//数据从发送缓冲器传输到移位寄存器时TXE标志将被置位 
+/****TXE=1，表明发送缓冲区的数据已经转移到了移位寄存器，此时发送缓冲区为空，可以再写进一个数据到发送缓冲区并等待移位寄存器传输完成******/   
     //发送数据
     SPI_I2S_SendData(SPI1, data);
     
-    //等待接收缓冲区非空
-    while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE) == RESET);
-
-/****RXNE=1，表明接收移位寄存器的数据已经转移到了接收缓冲区，此时接收缓冲区非空，可以读取接收缓冲区数据使RXNE=0******/
-    
-    //读取接收到的数据
-    return SPI_I2S_ReceiveData(SPI1);//读SPI_DR寄存器将清除RXNE位
+//     //等待接收缓冲区非空
+//     while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE) == RESET);
+// /****RXNE=1，表明接收移位寄存器的数据已经转移到了接收缓冲区，此时接收缓冲区非空，可以读取接收缓冲区数据使RXNE=0******/
+//     //读取接收到的数据
+//     return SPI_I2S_ReceiveData(SPI1);//读SPI_DR寄存器将清除RXNE位
+    return 0;
 }
 
 
