@@ -99,7 +99,7 @@ void LCD_WriteData24(uint32_t data)
 /*********************硬件SPI接口*****************************************************************/
 void LCD_PIN_Init_HW_SPI(void)
 {
-// 初始化硬件SPI,CS和RES
+// 初始化硬件SPI,MOSI引脚为PA7,CLK引脚为PA5,MISO引脚为PA6
     hw_spi_init();
 //cs,res,dc引脚初始化
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
@@ -108,6 +108,9 @@ void LCD_PIN_Init_HW_SPI(void)
         .GPIO_Mode  = GPIO_Mode_Out_PP,
         .GPIO_Speed = GPIO_Speed_50MHz,
     };
+    // GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1; // DC引脚
+    // GPIO_Init(GPIOB, &GPIO_InitStructure);
+    // GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5; // CS引脚
     GPIO_Init(GPIOB, &GPIO_InitStructure);
 
     LCD_RES_SET();//低电平复位
@@ -411,7 +414,6 @@ void LCD_ShowSnow(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
         hw_spi_transfer(color & 0xFF); // 发送低字节
     }
     LCD_Write_DC_End(); // 结束数据发送
-
 }
 
 

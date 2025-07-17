@@ -288,16 +288,16 @@ void task_proc(void)
 				u8g2_DrawStr(&u8g2,0*7,4*10,u8g2_buf);
 
 				u8g2_SendBuffer(&u8g2);
-				}
-				else{
-					//全球缩略图
-					u8g2_ClearBuffer(&u8g2);
-					u8g2_oled_draw_earth(&u8g2);//在全幅缓冲区内绘制全球缩略图
-					u8g2_oled_draw_earth_pixel_VHxvLine(&u8g2,lwgps_handle.latitude,lwgps_handle.longitude);//在全球缩略图上绘制实时经纬度坐标点
-					u8g2_SendBuffer(&u8g2);
-				}
-				
 			}
+			else{
+				//全球缩略图
+				u8g2_ClearBuffer(&u8g2);
+				u8g2_oled_draw_earth(&u8g2);//在全幅缓冲区内绘制全球缩略图
+				u8g2_oled_draw_earth_pixel_VHxvLine(&u8g2,lwgps_handle.latitude,lwgps_handle.longitude);//在全球缩略图上绘制实时经纬度坐标点
+				u8g2_SendBuffer(&u8g2);
+			}
+				
+		}
 		else
 		{
 			// u8g2_ClearBuffer(&u8g2);
@@ -492,39 +492,46 @@ int main(void)
 	LCD_Init_All();
 	LCD_Clear(BLACK);
 	LCD_ShowSnow(0,0,LCD_WIDTH-1,LCD_HEIGHT-1);//显示雪花
-	LCD_FillRect(0,50,85,150,0xc88c);//填充白色背景
-	LCD_FillRect(50,100,120,200,0x57f6);//填充白色背景
+	LCD_FillRect(0,50,85,150,0xc88c);
+	LCD_FillRect(50,100,120,200,0x57f6);
 	LCD_DrawLine(0,0,200,200,0x0000);//画一条黑色斜线
 	while(1)
 	{
 		uint32_t ms=0;//清零帧率计数器
 
-		// LCD_Clear(BLACK);
-		// LCD_ShowSnow(0,0,LCD_WIDTH-1,LCD_HEIGHT-1);//显示雪花
+		LCD_Clear(BLACK);
+		LCD_ShowSnow(0,0,LCD_WIDTH-1,LCD_HEIGHT-1);//显示雪花
+
 		TIM1->CNT=0;//清零计数器
 		LCD_FillRect(0,0,239,319,BLUE);
-		ms += (TIM1->CNT * 8)/1000;//计算帧率
+		// LCD_ShowSnow(0,0,LCD_WIDTH-1,LCD_HEIGHT-1);//显示雪花
+		ms += (TIM1->CNT * 8)/1000.0;//计算帧率
 
 		TIM1->CNT=0;//清零计数器
 		LCD_FillRect(0,0,239,319,BRED);
-		ms += (TIM1->CNT * 8)/1000;//计算帧率
+		// LCD_ShowSnow(0,0,LCD_WIDTH-1,LCD_HEIGHT-1);//显示雪花
+		ms += (TIM1->CNT * 8)/1000.0;//计算帧率
 
-		// LCD_FillRect(0,0,239,319,GRED);
-		// LCD_FillRect(0,0,239,319,RED);
-		// LCD_FillRect(0,0,239,319,MAGENTA);
+		LCD_FillRect(0,0,239,319,GRED);
+		LCD_FillRect(0,0,239,319,RED);
+		LCD_FillRect(0,0,239,319,MAGENTA);
 		
 		TIM1->CNT=0;//清零计数器
 		LCD_FillRect(0,0,239,319,GREEN);
-		ms += (TIM1->CNT * 8)/1000;//计算帧率
+		// LCD_ShowSnow(0,0,LCD_WIDTH-1,LCD_HEIGHT-1);//显示雪花
+		ms += (TIM1->CNT * 8)/1000.0;//计算帧率
 
-		// LCD_FillRect(0,0,239,319,CYAN);
+		LCD_FillRect(0,0,239,319,CYAN);
+
 		TIM1->CNT=0;//清零计数器
 		LCD_FillRect(0,0,239,319,YELLOW);
-		ms += (TIM1->CNT * 8)/1000;//计算帧率
-		// LCD_FillRect(0,0,239,319,BROWN);
-		// LCD_FillRect(0,0,239,319,BRRED);
-		// LCD_FillRect(0,0,239,319,GRAY);
-		// LCD_FillRect(0,0,239,319,GRAY25);
+		// LCD_ShowSnow(0,0,LCD_WIDTH-1,LCD_HEIGHT-1);//显示雪花
+		ms += (TIM1->CNT * 8)/1000.0;//计算帧率
+
+		LCD_FillRect(0,0,239,319,BROWN);
+		LCD_FillRect(0,0,239,319,BRRED);
+		LCD_FillRect(0,0,239,319,GRAY);
+		LCD_FillRect(0,0,239,319,GRAY25);
 
 		memset(u8g2_buf, 0, sizeof(u8g2_buf));
 		sprintf(u8g2_buf,"FPS:%dms/picture",ms>>2);//刷新4个图片取平均
